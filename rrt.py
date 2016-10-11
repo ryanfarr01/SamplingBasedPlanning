@@ -7,6 +7,7 @@ import matplotlib.pyplot as plotter
 from math import pi
 from collisions import PolygonEnvironment
 import time
+import random
 
 _DEBUG = False
 
@@ -117,8 +118,18 @@ class RRT:
         Sample a new configuration and return
         '''
         # Return goal with connect_prob probability
-        # Fill me in!
-        return None
+        if random.random() <= self.connect_prob:
+            return self.goal
+
+        point = []
+        for dimension in self.limits:
+            point.append(get_1d_sample(dimension[0], dimension[1]))
+        
+        return point
+        
+    def get_1d_sample(min, max):
+        return (random.random()*(max-min))+min
+
 
     def extend(self, q):
         '''
@@ -165,3 +176,9 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     print 'plan:', plan
     print 'run_time =', run_time
     return plan, rrt
+
+def main():
+    test_rrt_env()
+
+if __name__ == "__main__":
+    main()
