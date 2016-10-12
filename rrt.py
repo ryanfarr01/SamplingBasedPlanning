@@ -117,7 +117,12 @@ class RRT:
 
         # Build tree and search
         self.T = RRTSearchTree(init)
-        # Fill me in!
+        
+        for i in xrange(self.K):
+            x_rand = self.sample()
+            if self.extend_connect(x_rand) == _REACHED:
+                return self.T.get_back_path(self.goal_node)
+
         return None
 
     def sample(self):
@@ -159,6 +164,56 @@ class RRT:
 
         return _TRAPPED
 
+    def extend_connect(self, q):
+        '''
+        Perform rrt extend operation.
+        q - new configuration to extend towards
+        '''
+        x_near = self.T.find_nearest(q)[0]
+        x_near_state = x_near.state
+        conn = self.can_connect_C(q, x_near_state, x_near)
+        if conn[0]:
+            if np.linalg.norm(self.goal - q) <= self.epsilon:
+                self.found_path = True
+                new_node = TreeNode(self.goal, conn[1])
+                self.T.add_node(new_node, conn[1])
+                self.goal_node = new_node
+                return _REACHED
+            else:
+                new_node = TreeNode(q, conn[1])
+                self.T.add_node(new_node, conn[1])
+                return _ADVANCED
+
+        return _TRAPPED
+
+    def can_connect_C(self, q, q_near, q_near_node):
+        if self.in_collision(q):
+            return (False, None)
+
+        #Get the unit vector for the direction to move towards
+        q_near_to_q = q - q_near
+        distance = np.linalg.norm(q_near_to_q)
+        q_near_to_q /= distance
+        
+
+        #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
+        q_near_to_q *= self.epsilon
+
+        q_curr = np.copy(q_near)
+        parent_node = q_near_node
+        while np.linalg.norm(q - q_curr) > self.epsilon:
+            q_curr += q_near_to_q
+            if self.in_collision(q_curr):
+                return (False, None)
+            
+            new_node = TreeNode(q_curr, parent_node)
+            self.T.add_node(new_node, parent_node)
+            parent_node = new_node
+            q_curr = np.copy(q_curr)
+            
+
+        return (True, parent_node)
+
     def can_connect(self, q, q_near):
         if self.in_collision(q):
             return False
@@ -186,7 +241,7 @@ class RRT:
         '''
         return False
 
-def test_rrt_env(num_samples=500, step_length=0.1, env='./env0.txt', connect=False):
+def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False):
     '''
     create an instance of PolygonEnvironment from a description file and plan a path from start to goal on it using an RRT
 
@@ -220,7 +275,7 @@ def test_rrt_env(num_samples=500, step_length=0.1, env='./env0.txt', connect=Fal
     return plan, rrt
 
 def main():
-    test_rrt_env(env='./env0.txt')
+    test_rrt_env(env='./env0.txt', step_length = 5, connect = True)
 
 if __name__ == "__main__":
     main()
