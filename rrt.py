@@ -296,7 +296,7 @@ class RRT:
         '''
         return False
 
-def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False, bidirectional=False):
+def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False, bidirectional=True):
     '''
     create an instance of PolygonEnvironment from a description file and plan a path from start to goal on it using an RRT
 
