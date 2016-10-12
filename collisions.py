@@ -331,6 +331,7 @@ class PolygonEnvironment:
                   if None the search graph is not drawn
         '''
         self.draw_env(show=False)
+        two_trees = False
 
         # plotter.scatter(pts[:,0], pts[:,1])
         plotter.ion()
@@ -348,16 +349,15 @@ class PolygonEnvironment:
 
         if planner is not None:
             Qs, edges = planner.T.get_states_and_edges()
+            if hasattr(planner, 'Tg'):
+                two_trees = True
+                Qs_2, edges_2 = planner.Tg.get_states_and_edges()
+
             # Draw tree for each of the robot links
-            for i, e in enumerate(edges):
-                X0 = self.robot.fk(e[0])
-                X1 = self.robot.fk(e[1])
-                e0 = X0[-1]
-                e1 = X1[-1]
-                plotter.plot([e0[0], e1[0]], [e0[1], e1[1]], 'b')
-                plotter.plot([e0[0], e1[0]], [e0[1], e1[1]], 'b.')
-                if dynamic_tree:
-                    plotter.pause(0.001)
+            self.plot_edges(edges, plotter, dynamic_tree)
+
+            if two_trees:
+                self.plot_edges(edges_2, plotter, dynamic_tree)
 
         # Draw goal
         goal_fk = self.robot.fk(self.goal)
@@ -392,3 +392,14 @@ class PolygonEnvironment:
             
         plotter.ioff()
         plotter.show()
+
+    def plot_edges(self, edges, plotter, dynamic_tree):
+        for i, e in enumerate(edges):
+            X0 = self.robot.fk(e[0])
+            X1 = self.robot.fk(e[1])
+            e0 = X0[-1]
+            e1 = X1[-1]
+            plotter.plot([e0[0], e1[0]], [e0[1], e1[1]], 'b')
+            plotter.plot([e0[0], e1[0]], [e0[1], e1[1]], 'b.')
+            if dynamic_tree:
+                plotter.pause(0.001)

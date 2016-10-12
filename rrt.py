@@ -120,10 +120,62 @@ class RRT:
         
         for i in xrange(self.K):
             x_rand = self.sample()
-            if self.extend_connect(x_rand) == _REACHED:
-                return self.T.get_back_path(self.goal_node)
+            status = self.extend_connect(x_rand, self.T)
+            if status[0] == _REACHED:
+                return self.T.get_back_path(status[1])
 
         return None
+
+    def build_rrt_connect_bidirectional(self, init, goal):
+        '''
+        Build the rrt connect bidirectionally. This builds a tree
+        from both the start and the goal.
+        Returns path to goal or None
+        '''
+        self.goal = np.array(goal)
+        self.init = np.array(init)
+        self.found_path = False
+        self.goal_node_2 = None
+
+        # Build tree and search
+        self.T = RRTSearchTree(init)
+        self.Tg = RRTSearchTree(goal)
+
+        tree = self.T
+        tree2 = self.Tg
+        for i in xrange(self.K):
+            x_rand = self.sample()
+            status = self.extend_connect(x_rand, tree)
+            if not status[0] == _TRAPPED:
+                status_2 = self.extend_connect(status[1].state, tree2)
+                if not status_2[0] == _TRAPPED:
+                    return self.get_path(tree, status[1], tree2, status_2[1])
+                    
+            #switch trees
+            if tree == self.T:
+                tree  = self.Tg
+                tree2 = self.T
+            else:
+                tree  = self.T
+                tree2 = self.Tg
+        return None
+
+    def get_path(self, tree1, node1, tree2, node2):
+        use_tree1 = tree1
+        use_node1 = node1
+        use_tree2 = tree2
+        use_node2 = node2
+        if not tree1 == self.T:
+            use_tree1 = tree2
+            use_node1 = node2
+            use_tree2 = tree1
+            use_node2 = node1
+                    
+        path = use_tree1.get_back_path(use_node1)
+        path2 = use_tree2.get_back_path(use_node2)
+        path2.reverse()
+        path.append(path2)
+        return path
 
     def sample(self):
         '''
@@ -164,29 +216,29 @@ class RRT:
 
         return _TRAPPED
 
-    def extend_connect(self, q):
+    def extend_connect(self, q, tree):
         '''
         Perform rrt extend operation.
         q - new configuration to extend towards
         '''
-        x_near = self.T.find_nearest(q)[0]
+        x_near = tree.find_nearest(q)[0]
         x_near_state = x_near.state
-        conn = self.can_connect_C(q, x_near_state, x_near)
+        conn = self.can_connect_C(q, x_near_state, x_near, tree)
         if conn[0]:
             if np.linalg.norm(self.goal - q) <= self.epsilon:
                 self.found_path = True
                 new_node = TreeNode(self.goal, conn[1])
-                self.T.add_node(new_node, conn[1])
+                tree.add_node(new_node, conn[1])
                 self.goal_node = new_node
-                return _REACHED
+                return (_REACHED, new_node)
             else:
                 new_node = TreeNode(q, conn[1])
-                self.T.add_node(new_node, conn[1])
-                return _ADVANCED
+                tree.add_node(new_node, conn[1])
+                return (_ADVANCED, new_node)
 
-        return _TRAPPED
+        return (_TRAPPED, None)
 
-    def can_connect_C(self, q, q_near, q_near_node):
+    def can_connect_C(self, q, q_near, q_near_node, tree):
         if self.in_collision(q):
             return (False, None)
 
@@ -207,10 +259,9 @@ class RRT:
                 return (False, None)
             
             new_node = TreeNode(q_curr, parent_node)
-            self.T.add_node(new_node, parent_node)
+            tree.add_node(new_node, parent_node)
             parent_node = new_node
             q_curr = np.copy(q_curr)
-            
 
         return (True, parent_node)
 
@@ -241,7 +292,7 @@ class RRT:
         '''
         return False
 
-def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False):
+def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False, bidirectional=False):
     '''
     create an instance of PolygonEnvironment from a description file and plan a path from start to goal on it using an RRT
 
@@ -265,7 +316,10 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
               connect_prob = 0.05,
               collision_func=pe.test_collisions)
     if connect:
-        plan = rrt.build_rrt_connect(pe.start, pe.goal)
+        if bidirectional:
+            plan = rrt.build_rrt_connect_bidirectional(pe.start, pe.goal)
+        else:
+            plan = rrt.build_rrt_connect(pe.start, pe.goal)
     else:
         plan = rrt.build_rrt(pe.start, pe.goal)
     run_time = time.time() - start_time
@@ -275,7 +329,7 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     return plan, rrt
 
 def main():
-    test_rrt_env(env='./env0.txt', step_length = 5, connect = True)
+    test_rrt_env(env='./env0.txt', step_length = 5, connect = True, bidirectional=True)
 
 if __name__ == "__main__":
     main()
