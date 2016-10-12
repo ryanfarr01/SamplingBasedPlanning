@@ -158,6 +158,7 @@ class RRT:
             else:
                 tree  = self.T
                 tree2 = self.Tg
+
         return None
 
     def get_path(self, tree1, node1, tree2, node2):
@@ -174,7 +175,8 @@ class RRT:
         path = use_tree1.get_back_path(use_node1)
         path2 = use_tree2.get_back_path(use_node2)
         path2.reverse()
-        path.append(path2)
+        path.extend(path2)
+
         return path
 
     def sample(self):
@@ -245,6 +247,8 @@ class RRT:
         #Get the unit vector for the direction to move towards
         q_near_to_q = q - q_near
         distance = np.linalg.norm(q_near_to_q)
+        if distance == 0:
+            return (False, None)
         q_near_to_q /= distance
         
 
@@ -329,7 +333,7 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     return plan, rrt
 
 def main():
-    test_rrt_env(env='./env0.txt', step_length = 5, connect = True, bidirectional=True)
+    test_rrt_env(env='./env1.txt', num_samples = 5000, step_length = 0.2, connect = True, bidirectional=True)
 
 if __name__ == "__main__":
     main()
