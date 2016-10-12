@@ -389,3 +389,6 @@ class PolygonEnvironment:
                 if dynamic_plan:
                     plotter.pause(0.01)
             self.robot.draw(plan[-1], color='r')
+            
+        plotter.ioff()
+        plotter.show()

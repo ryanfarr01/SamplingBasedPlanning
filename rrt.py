@@ -52,9 +52,11 @@ class RRTSearchTree:
 
     def get_back_path(self, n):
         path = []
-        while n.parent is not None:
+        while n is not None:
+            print 'node: ', n.state, ', with parent: ', n.parent
             path.append(n.state)
             n = n.parent
+
         path.reverse()
         return path
 
@@ -69,6 +71,7 @@ class RRT:
         self.n = num_dimensions
         self.epsilon = step_length
         self.connect_prob = connect_prob
+        self.goal_node = None
 
         self.in_collision = collision_func
         if collision_func is None:
@@ -96,7 +99,12 @@ class RRT:
 
         # Build tree and search
         self.T = RRTSearchTree(init)
-        # Fill me in!
+        
+        for i in xrange(self.K):
+            x_rand = self.sample()
+            if self.extend(x_rand) == _REACHED:
+                return self.T.get_back_path(self.goal_node)
+
         return None
 
     def build_rrt_connect(self, init, goal):
@@ -123,11 +131,11 @@ class RRT:
 
         point = []
         for dimension in self.limits:
-            point.append(get_1d_sample(dimension[0], dimension[1]))
+            point.append(self.get_1d_sample(dimension[0], dimension[1]))
         
-        return point
+        return np.array(point)
         
-    def get_1d_sample(min, max):
+    def get_1d_sample(self, min, max):
         return (random.random()*(max-min))+min
 
 
@@ -136,8 +144,42 @@ class RRT:
         Perform rrt extend operation.
         q - new configuration to extend towards
         '''
-        # Fill me in!
-        return None
+        x_near = self.T.find_nearest(q)[0]
+        x_near_state = x_near.state
+        if self.can_connect(q, x_near_state):
+            if np.linalg.norm(self.goal - q) <= self.epsilon:
+                self.found_path = True
+                new_node = TreeNode(self.goal, x_near)
+                self.T.add_node(new_node, x_near)
+                self.goal_node = new_node
+                return _REACHED
+            else:
+                new_node = TreeNode(q, x_near)
+                self.T.add_node(new_node, x_near)
+                return _ADVANCED
+
+        return _TRAPPED
+
+    def can_connect(self, q, q_near):
+        if self.in_collision(q):
+            return False
+
+        #Get the unit vector for the direction to move towards
+        q_near_to_q = q - q_near
+        distance = np.linalg.norm(q_near_to_q)
+        q_near_to_q /= distance
+        
+
+        #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
+        q_near_to_q *= self.epsilon
+
+        q_curr = q_near
+        while np.linalg.norm(q - q_near) > self.epsilon:
+            q_curr += q_near_to_q
+            if self.in_collision(q_curr):
+                return False
+
+        return True
 
     def fake_in_collision(self, q):
         '''
@@ -175,6 +217,8 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     run_time = time.time() - start_time
     print 'plan:', plan
     print 'run_time =', run_time
+    print 'start: ', pe.start
+    pe.draw_plan(plan, rrt)
     return plan, rrt
 
 def main():
