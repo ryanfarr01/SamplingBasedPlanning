@@ -53,7 +53,6 @@ class RRTSearchTree:
     def get_back_path(self, n):
         path = []
         while n is not None:
-            print 'node: ', n.state, ', with parent: ', n.parent
             path.append(n.state)
             n = n.parent
 
@@ -173,8 +172,8 @@ class RRT:
         #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
         q_near_to_q *= self.epsilon
 
-        q_curr = q_near
-        while np.linalg.norm(q - q_near) > self.epsilon:
+        q_curr = np.copy(q_near)
+        while np.linalg.norm(q - q_curr) > self.epsilon:
             q_curr += q_near_to_q
             if self.in_collision(q_curr):
                 return False
@@ -187,7 +186,7 @@ class RRT:
         '''
         return False
 
-def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False):
+def test_rrt_env(num_samples=500, step_length=0.1, env='./env0.txt', connect=False):
     '''
     create an instance of PolygonEnvironment from a description file and plan a path from start to goal on it using an RRT
 
@@ -217,12 +216,11 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     run_time = time.time() - start_time
     print 'plan:', plan
     print 'run_time =', run_time
-    print 'start: ', pe.start
     pe.draw_plan(plan, rrt)
     return plan, rrt
 
 def main():
-    test_rrt_env()
+    test_rrt_env(env='./env0.txt')
 
 if __name__ == "__main__":
     main()
