@@ -2,6 +2,7 @@
 
 from prm import Node
 import numpy as np
+import heapq
 
 
 def a_star_search(start, goal):
@@ -21,16 +22,16 @@ def a_star_search(start, goal):
     frontier.push(start_node, 0)
     while len(frontier) > 0:
         n_i = frontier.pop()
-        if n_i.state not in visited:
-            visited.add(n_i.state)
+        if n_i not in visited:
+            visited.add(n_i)
             if is_goal(n_i, goal_node):
                 return get_path(n_i)
             else:
                 for nb in n_i.node.connections:
                     s_prime = nb
-                    n_prime = SearchNode(s_prime.state, s_prime, n_i, n_i.cost + np.linalg.norm(n_i.state, s_prime))
-                    tot_cost = n_prime.cost + h(n_prime.state, goal)
-                    if (n_prime.state not in frontier) or (tot_cost < frontier.get_cost(n_prime)):
+                    n_prime = SearchNode(s_prime.state, s_prime, n_i, n_i.cost + np.linalg.norm(n_i.state - s_prime.state))
+                    tot_cost = n_prime.cost + h(n_prime.state, goal_node.state)
+                    if (n_prime not in frontier) or (tot_cost < frontier.get_cost(n_prime)):
                         frontier.push(n_prime, tot_cost)
     return None
 
@@ -87,24 +88,34 @@ class PriorityQ:
         '''
         Test if x is in the queue
         '''
-        return x in self.s
+        for n in self.s:
+            if self.is_equal(n.state, x.state):
+                return True
+
+        return False
+
+    def is_equal(self, state1, state2):
+        for i in xrange(len(state1)):
+            if not state1[i] == state2[i]:
+                return False
+        return True
 
     def push(self, x, cost):
         '''
         Adds an element to the priority queue.
         If the state already exists, we update the cost
         '''
-        if x.state in self.s:
+        if x in self.s:
             return self.replace(x, cost)
         heapq.heappush(self.l, (cost, x))
-        self.s.add(x.state)
+        self.s.add(x)
 
     def pop(self):
         '''
         Get the value and remove the lowest cost element from the queue
         '''
         x = heapq.heappop(self.l)
-        self.s.remove(x[1].state)
+        self.s.remove(x[1])
         return x[1]
 
     def peak(self):
@@ -127,7 +138,7 @@ class PriorityQ:
         for y in self.l:
             if x.state == y[1].state:
                 self.l.remove(y)
-                self.s.remove(y[1].state)
+                self.s.remove(y[1])
                 break
         heapq.heapify(self.l)
         self.push(x, new_cost)
@@ -137,7 +148,7 @@ class PriorityQ:
         Return the cost for the search node with state x.state
         '''
         for y in self.l:
-            if x.state == y[1].state:
+            if self.is_equal(x.state, y[1].state):
                 return y[0]
 
     def __str__(self):

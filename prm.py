@@ -70,7 +70,8 @@ class PRMGraph:
         return (states, self.edges)
 
 class PRM:
-    def __init__(self, num_samples, num_dimensions, step_length, collision_func, lims, num_neighbors, planner = _BASIC_PLANNER):
+    def __init__(self, num_samples, num_dimensions, step_length, collision_func, lims,
+                  num_neighbors, planner = _BASIC_PLANNER):
         self.K = num_samples
         self.n = num_dimensions
         self.epsilon = step_length
