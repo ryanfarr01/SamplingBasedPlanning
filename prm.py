@@ -186,7 +186,7 @@ class PRM:
     def get_1d_sample_gaussian(self, mean):
         return np.random.normal(mean, 8)
 
-def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
+def test_prm_env(num_samples=5000, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
     pe = PolygonEnvironment()
     pe.read_env(env)
 

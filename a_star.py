@@ -22,7 +22,7 @@ def a_star_search(start, goal):
     frontier.push(start_node, 0)
     while len(frontier) > 0:
         n_i = frontier.pop()
-        if n_i not in visited:
+        if not in_list(n_i, visited):
             visited.add(n_i)
             if is_goal(n_i, goal_node):
                 return get_path(n_i)
@@ -50,6 +50,12 @@ def get_path(node):
     path.reverse()
     return path
 
+def in_list(node, visited):
+    for v in visited:
+        if node.__eq__(v):
+            return True
+    return False
+
 class SearchNode:
     def __init__(self, s, node, parent=None, cost=0):
         '''
@@ -67,10 +73,21 @@ class SearchNode:
         '''
         Return a human readable description of the node
         '''
-        return str(self.state) + ' ' + str(self.actions)+' '+str(self.parent)+' '+str(self.parent_action)
+        return str(self.state)
 
     def __hash__(self):
         return hash(repr(self))
+
+    def __eq__(self, other):
+        i = 0
+        for d in self.state:
+            if not self.state[i] == other.state[i]:
+                return False
+            i += 1
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class PriorityQ:
     '''
