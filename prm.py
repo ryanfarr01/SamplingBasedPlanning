@@ -192,15 +192,21 @@ class PRM:
     def sample_gaussian(self, pt):
         point = []
         for d in xrange(self.n):
-            point.append(self.get_1d_sample_gaussian(pt[d]))
+            point.append(self.get_1d_sample_gaussian(pt[d], self.limits[d][0], self.limits[d][1]))
 
         return np.array(point)
 
     def get_1d_sample(self, min, max):
         return (random.random()*(max-min))+min
 
-    def get_1d_sample_gaussian(self, mean):
-        return np.random.normal(mean, 6)
+    def get_1d_sample_gaussian(self, mean, min, max):
+        val = np.random.normal(mean, 4)
+        if val < min:
+            return min
+        if val > max:
+            return max
+            
+        return val
 
 def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
     pe = PolygonEnvironment()
@@ -231,7 +237,7 @@ def query_prm(pe, prm, start=None, goal=None):
     return q_prm, plan
 
 def main():
-    pe, prm = test_prm_env(num_samples=500, step_length = 0.02, env='./env1.txt', gaussian=False)
+    pe, prm = test_prm_env(num_samples=1000, step_length = 0.02, env='./env1.txt', gaussian=True)
     query_prm(pe, prm)
 
 if __name__ == '__main__':
