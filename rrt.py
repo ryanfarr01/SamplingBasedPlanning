@@ -251,7 +251,6 @@ class RRT:
             return (False, None)
         q_near_to_q /= distance
         
-
         #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
         q_near_to_q *= self.epsilon
 
