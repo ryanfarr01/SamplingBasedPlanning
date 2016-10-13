@@ -15,6 +15,14 @@ from rrt import RRT
 _RRT_PLANNER = 'rrt_planner'
 _BASIC_PLANNER = 'basic_planner'
 
+class HeapNode:
+    def __init__(self, node, dist):
+        self.node = node
+        self.dist = dist
+
+    def __cmp__(self, other):
+        return cmp(self.dist, other.dist)
+
 class Node:
     def __init__(self, state):
         self.state = state
@@ -31,19 +39,20 @@ class PRMGraph:
     def find_k_nearest(self, k, s_query):
         neighbors = []
         for n in self.nodes:
-            dist = np.linalg.norm(k - n.state)
+            dist = np.linalg.norm(s_query - n.state)
             if dist > 0:
-                heapq.heappush(neighbors, (dist, n))
+                hn = HeapNode(n, dist)
+                heapq.heappush(neighbors, hn)
 
         ret_list = []
         if len(neighbors) <= k:
             for k in neighbors:
-                ret_list.append(k[1])
+                ret_list.append(k.node)
             return ret_list
 
         for i in xrange(k):
             t = heapq.heappop(neighbors)
-            ret_list.append(t[1])
+            ret_list.append(t.node)
 
         return ret_list
 
@@ -76,6 +85,12 @@ class PRM:
         for i in xrange(self.K):
             self.add_to_tree()
 
+        for node in self.T.nodes:
+            for nb in self.T.find_k_nearest(self.num_neighbors, node.state):
+                if not nb in node.connections and self.can_connect(node.state, nb.state):
+                    self.T.add_edge(node, nb)
+                        
+
     def build_prm_gaussian(self):
         return None
 
@@ -88,9 +103,6 @@ class PRM:
         graph_node = Node(s)
         if not self.in_collision(s):
             self.T.add_node(graph_node)
-            for node in self.T.find_k_nearest(self.num_neighbors, s):
-                if self.can_connect(s, node.state):
-                    self.T.add_edge(graph_node, node)
 
     def can_connect(self, q, q_near):
         if self.in_collision(q):
@@ -99,9 +111,10 @@ class PRM:
         #Get the unit vector for the direction to move towards
         q_near_to_q = q - q_near
         distance = np.linalg.norm(q_near_to_q)
+        if distance == 0:
+            return False
         q_near_to_q /= distance
         
-
         #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
         q_near_to_q *= self.epsilon
 
@@ -126,7 +139,7 @@ class PRM:
     def get_1d_sample(self, min, max):
         return (random.random()*(max-min))+min
 
-def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors = 3, gaussian=False, rrt_planner=False):
+def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors = 5, gaussian=False, rrt_planner=False):
     pe = PolygonEnvironment()
     pe.read_env(env)
 
@@ -140,6 +153,10 @@ def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors
     print 'run_time = ', run_time
 
     pe.draw_plan(None, prm)
+
+    #test query point
+    plan = prm.query_point(pe.start, pe.goal)
+    pe.draw_plan(plan, prm)
     return prm
 
 def main():
