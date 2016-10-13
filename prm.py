@@ -10,6 +10,7 @@ from collisions import PolygonEnvironment
 import time
 import random
 import heapq
+import a_star
 from rrt import RRT
 
 _RRT_PLANNER = 'rrt_planner'
@@ -95,8 +96,22 @@ class PRM:
         return None
 
     def query(self, start, goal):
-        #take in start and goal, produce a plan using the curent PRM
-        return None 
+        #add start and goal to the map
+        s_node = Node(start)
+        g_node = Node(goal)
+        self.T.add_node(s_node)
+        self.T.add_node(g_node)
+        
+        #Add neighbors for the two nodes
+        for nb in self.T.find_k_nearest(self.num_neighbors, start):
+            if self.can_connect(start, nb.state):
+                self.T.add_edge(s_node, nb)
+        for nb in self.T.find_k_nearest(self.num_neighbors, goal):
+            if self.can_connect(goal, nb.state):
+                self.T.add_edge(g_node, nb)
+
+        #Run A* pathfinding to get path
+        return a_star.a_star_search(s_node, g_node)
 
     def add_to_tree(self):
         s = self.sample()
@@ -155,7 +170,7 @@ def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors
     pe.draw_plan(None, prm)
 
     #test query point
-    plan = prm.query_point(pe.start, pe.goal)
+    plan = prm.query(pe.start, pe.goal)
     pe.draw_plan(plan, prm)
     return prm
 
