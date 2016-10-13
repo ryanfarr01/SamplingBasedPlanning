@@ -94,7 +94,16 @@ class PRM:
                         
 
     def build_prm_gaussian(self):
-        return None
+
+        self.T = PRMGraph()
+
+        for i in xrange(self.K):
+            self.add_to_tree_gaussian()
+
+        for node in self.T.nodes:
+            for nb in self.T.find_k_nearest(self.num_neighbors, node.state):
+                if not nb in node.connections and self.can_connect(node.state, nb.state):
+                    self.T.add_edge(node, nb)
 
     def query(self, start, goal):
         #add start and goal to the map
@@ -119,6 +128,18 @@ class PRM:
         graph_node = Node(s)
         if not self.in_collision(s):
             self.T.add_node(graph_node)
+
+    def add_to_tree_gaussian(self):
+        s = self.sample()
+        s2 = self.sample_gaussian(s)
+        col_1 = self.in_collision(s)
+        col_2 = self.in_collision(s2)
+        if col_1 and not col_2:
+            new_node = Node(s2)
+            self.T.add_node(new_node)
+        elif col_2 and not col_1:
+            new_node = Node(s)
+            self.T.add_node(new_node)
 
     def can_connect(self, q, q_near):
         if self.in_collision(q):
@@ -151,11 +172,21 @@ class PRM:
             point.append(self.get_1d_sample(dimension[0], dimension[1]))
         
         return np.array(point)
-        
+
+    def sample_gaussian(self, pt):
+        point = []
+        for d in xrange(self.n):
+            point.append(self.get_1d_sample_gaussian(pt[d]))
+
+        return np.array(point)
+
     def get_1d_sample(self, min, max):
         return (random.random()*(max-min))+min
 
-def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors = 5, gaussian=False, rrt_planner=False):
+    def get_1d_sample_gaussian(self, mean):
+        return np.random.normal(mean, 8)
+
+def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
     pe = PolygonEnvironment()
     pe.read_env(env)
 
@@ -163,8 +194,12 @@ def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors
     start_time = time.time()
     
     prm = PRM(num_samples, dims, step_length, pe.test_collisions, pe.lims, num_neighbors)
-    prm.build_prm()
     
+    if gaussian: 
+        prm.build_prm_gaussian()
+    else:
+        prm.build_prm()
+
     run_time = time.time() - start_time
     print 'run_time = ', run_time
 
@@ -176,7 +211,7 @@ def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors
     return prm
 
 def main():
-    test_prm_env()
+    test_prm_env(gaussian=True)
 
 if __name__ == '__main__':
     main()
