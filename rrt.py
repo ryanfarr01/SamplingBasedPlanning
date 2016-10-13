@@ -9,6 +9,23 @@ from collisions import PolygonEnvironment
 import time
 import random
 
+'''
+Author: Ryan Farr
+Date: 10/13/2016
+File: rrt.py - Contains all required classes and data structures to create a 
+     rapidly-exploring random tree (RRT) based on a given environment.
+
+Use: Generate an environment, run the test_rrt_env method on that environment.
+     Set the required parameters.
+
+Parameters:
+     num_samples - maximum number of samples to use
+     step_length - the epsilon used for collision checking
+     env - the file path to the environment defined
+     connect - whether or not to use rrt-connect
+     bidirectional - whether or not to use bidirectional rrt-connect. NOTE: false if connect is false
+'''
+
 _DEBUG = False
 
 _TRAPPED = 'trapped'
@@ -16,6 +33,10 @@ _ADVANCED = 'advanced'
 _REACHED = 'reached'
 
 class TreeNode:
+    '''
+    Definition for one node in the RRT Search Tree.
+    Contains data for the state, children, and parent
+    '''
     def __init__(self, state, parent=None):
         self.state = state
         self.children = []
@@ -25,12 +46,20 @@ class TreeNode:
         self.children.append(child)
 
 class RRTSearchTree:
+    '''
+    Definition for the RRT Search Tree. Contains root,
+    nodes, and edges. Supports find-nearest, add node,
+    get_back_path, and get_states_and_edges.
+    '''
     def __init__(self, init):
         self.root = TreeNode(init)
         self.nodes = [self.root]
         self.edges = []
 
     def find_nearest(self, s_query):
+        '''
+        Find the node nearest to the query state
+        '''
         min_d = 1000000
         nn = self.root
         for n_i in self.nodes:
@@ -47,10 +76,18 @@ class RRTSearchTree:
         parent.add_child(node)
 
     def get_states_and_edges(self):
+        '''
+        Returns tuple of all states and edges
+        (states, edges)
+        '''
         states = np.array([n.state for n in self.nodes])
         return (states, self.edges)
 
     def get_back_path(self, n):
+        '''
+        Returns the path from the given node back to the root. Given as a
+        list of states
+        '''
         path = []
         while n is not None:
             path.append(n.state)
@@ -60,7 +97,6 @@ class RRTSearchTree:
         return path
 
 class RRT:
-
     def __init__(self, num_samples, num_dimensions=2, step_length = 1, lims = None,
                  connect_prob = 0.05, collision_func=None):
         '''
@@ -162,6 +198,12 @@ class RRT:
         return None
 
     def get_path(self, tree1, node1, tree2, node2):
+        '''
+        Gets the path from goal to start for bidirectional
+        RRT-Connect. Takes path from start to connecting node,
+        then reverses path from connecting node to goal.
+        Returns path as list of states.
+        '''
         use_tree1 = tree1
         use_node1 = node1
         use_tree2 = tree2
@@ -194,6 +236,9 @@ class RRT:
         return np.array(point)
         
     def get_1d_sample(self, min, max):
+        '''
+        Sample one dimension given a minimum and maximum value
+        '''
         return (random.random()*(max-min))+min
 
 
@@ -220,8 +265,9 @@ class RRT:
 
     def extend_connect(self, q, tree):
         '''
-        Perform rrt extend operation.
+        Perform rrt extend operation for connect.
         q - new configuration to extend towards
+        tree - which tree to extend
         '''
         x_near = tree.find_nearest(q)[0]
         x_near_state = x_near.state
@@ -241,6 +287,10 @@ class RRT:
         return (_TRAPPED, None)
 
     def can_connect_C(self, q, q_near, q_near_node, tree):
+        '''
+        Determines if q and q_near can be connected for RRT-Connect
+        for a given tree.
+        '''
         if self.in_collision(q):
             return (False, None)
 
@@ -254,6 +304,7 @@ class RRT:
         #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
         q_near_to_q *= self.epsilon
 
+        #Check for collision
         q_curr = np.copy(q_near)
         parent_node = q_near_node
         while np.linalg.norm(q - q_curr) > self.epsilon:
@@ -269,6 +320,9 @@ class RRT:
         return (True, parent_node)
 
     def can_connect(self, q, q_near):
+        '''
+        Tells of q and q_near can be connected using a linear collision check.
+        '''
         if self.in_collision(q):
             return False
 
@@ -281,6 +335,7 @@ class RRT:
         #Multiply vector by epsilon so that we can continuously add to q_near and check for collision
         q_near_to_q *= self.epsilon
 
+        #Check for collision
         q_curr = np.copy(q_near)
         while np.linalg.norm(q - q_curr) > self.epsilon:
             q_curr += q_near_to_q
@@ -303,6 +358,7 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     step_length - step size for growing in rrt (epsilon)
     env - path to the environment file to read
     connect - If True run rrt_connect
+    bidirectional - If true and connect is true, uses bidirectional rrt-connect
 
     returns plan, planner - plan is the set of configurations from start to goal, planner is the rrt used for building the plan
     '''
@@ -323,6 +379,9 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
             plan = rrt.build_rrt_connect_bidirectional(pe.start, pe.goal)
         else:
             plan = rrt.build_rrt_connect(pe.start, pe.goal)
+    elif bidirectional:
+        print 'Can\'t use bidirectional without connect being true. Try again, but use connect = true or change bidirectional to false'
+        return None, None
     else:
         plan = rrt.build_rrt(pe.start, pe.goal)
     run_time = time.time() - start_time

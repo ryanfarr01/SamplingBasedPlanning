@@ -4,17 +4,28 @@ from prm import Node
 import numpy as np
 import heapq
 
+'''
+Author: Ryan Farr
+Date: 10/13/2016
+File: a_star.py - contains a_star_search method which takes start and goal nodes and finds a path
+    between them. Returns None if no path exists. Both start and goal must already be nodes
+    in an existing graph. The nodes must have a variable 'state' that gives their location in
+    n-dimensional space.
+
+Use: import a_star, create the graph, pass start and goal nodes to a_star_search method
+'''
 
 def a_star_search(start, goal):
     '''
-    init_state - value of the initial state
-    f - transition function takes input state (s), action (a), returns s_prime = f(s, a)
-        returns s if action is not valid
-    is_goal - takes state as input returns true if it is a goal state
-    actions - list of actions available
-    h - heuristic function, takes input s and returns estimated cost to goal
-        (note h will also need access to the map, so should be a member function of GridMap)
+    Performs A* search to find a path to the goal. Start and goal should
+    both be nodes already in a pre-made graph.
+
+    Returns a path or None of one does not exist
+
+    start - the start state
+    goal - the goal state
     '''
+
     frontier = PriorityQ()
     start_node = SearchNode(start.state, start)
     goal_node = SearchNode(goal.state, goal)
@@ -36,12 +47,26 @@ def a_star_search(start, goal):
     return None
 
 def is_goal(node, goal):
+    '''
+    Returns true if the node is the goal. False otherwise
+    '''
+
     return node.node == goal.node
 
 def h(state1, goal):
+    '''
+    Returns a float value for the minimum distance
+    between the state and goal. Acts as a heuristic
+    '''
+
     return np.linalg.norm(state1 - goal)
 
 def get_path(node):
+    '''
+    Gets the path from this node to the start. Returns a list
+    of states as the path
+    '''
+    
     path = []
     while node is not None:
         path.append(node.state)
@@ -51,6 +76,9 @@ def get_path(node):
     return path
 
 def in_list(node, visited):
+    '''
+    Returns true of the node is in the list. False otherwise
+    '''
     for v in visited:
         if node.__eq__(v):
             return True

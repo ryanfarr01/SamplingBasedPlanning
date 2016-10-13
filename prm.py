@@ -69,6 +69,21 @@ class PRMGraph:
         states = np.array([n.state for n in self.nodes])
         return (states, self.edges)
 
+    def clone(self):
+        n_graph = PRMGraph()
+        mapping = {}
+        for node in self.nodes:
+            n_n = Node(node.state)
+            n_graph.add_node(n_n)
+            mapping[node] = n_n
+
+        for node in self.nodes:
+            for conn in node.connections:
+                if conn not in mapping[node].connections:
+                    n_graph.add_edge(mapping[node], mapping[conn])
+
+        return n_graph
+
 class PRM:
     def __init__(self, num_samples, num_dimensions, step_length, collision_func, lims,
                   num_neighbors, planner = _BASIC_PLANNER):
@@ -79,33 +94,34 @@ class PRM:
         self.limits = lims
         self.found_path = False
         self.num_neighbors = num_neighbors
+        self.planner = planner
 
-    def build_prm(self):
+    def clone(self):
+        n_prm = PRM(self.K, self.n, self.epsilon, self.in_collision, self.limits, self.num_neighbors, self.planner)
+        n_prm.T = self.T.clone()
+        
+        return n_prm
+
+    def build_prm(self, gaussian=False):
                 
         self.T = PRMGraph()
 
         for i in xrange(self.K):
-            self.add_to_tree()
+            if gaussian:
+                self.add_to_tree_gaussian()
+            else:
+                self.add_to_tree()
 
         for node in self.T.nodes:
             for nb in self.T.find_k_nearest(self.num_neighbors, node.state):
                 if not nb in node.connections and self.can_connect(node.state, nb.state):
                     self.T.add_edge(node, nb)
                         
-
-    def build_prm_gaussian(self):
-
-        self.T = PRMGraph()
-
-        for i in xrange(self.K):
-            self.add_to_tree_gaussian()
-
-        for node in self.T.nodes:
-            for nb in self.T.find_k_nearest(self.num_neighbors, node.state):
-                if not nb in node.connections and self.can_connect(node.state, nb.state):
-                    self.T.add_edge(node, nb)
-
     def query(self, start, goal):
+        c = self.clone()
+        return c, c._query(start, goal)
+
+    def _query(self, start, goal):
         #add start and goal to the map
         s_node = Node(start)
         g_node = Node(goal)
@@ -184,9 +200,9 @@ class PRM:
         return (random.random()*(max-min))+min
 
     def get_1d_sample_gaussian(self, mean):
-        return np.random.normal(mean, 8)
+        return np.random.normal(mean, 6)
 
-def test_prm_env(num_samples=5000, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
+def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
     pe = PolygonEnvironment()
     pe.read_env(env)
 
@@ -194,24 +210,29 @@ def test_prm_env(num_samples=5000, step_length=2, env='./env0.txt', num_neighbor
     start_time = time.time()
     
     prm = PRM(num_samples, dims, step_length, pe.test_collisions, pe.lims, num_neighbors)
+    prm.build_prm(gaussian)
     
-    if gaussian: 
-        prm.build_prm_gaussian()
-    else:
-        prm.build_prm()
-
     run_time = time.time() - start_time
     print 'run_time = ', run_time
 
     pe.draw_plan(None, prm)
+    return pe, prm
 
-    #test query point
-    plan = prm.query(pe.start, pe.goal)
-    pe.draw_plan(plan, prm)
-    return prm
+def query_prm(pe, prm, start=None, goal=None):
+    if(start == None):
+        start = pe.start
+    if(goal == None):
+        goal = pe.goal
+
+    q_prm, plan = prm.query(start, goal)
+    print 'plan: ', plan
+    pe.draw_plan(plan, q_prm)
+
+    return q_prm, plan
 
 def main():
-    test_prm_env(gaussian=True)
+    pe, prm = test_prm_env(num_samples=500, step_length = 0.02, env='./env1.txt', gaussian=False)
+    query_prm(pe, prm)
 
 if __name__ == '__main__':
     main()
