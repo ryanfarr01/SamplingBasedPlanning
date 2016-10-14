@@ -395,7 +395,7 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', start = None,
         else:
             plan = rrt.build_rrt_connect(pe.start, pe.goal)
     elif bidirectional:
-        print 'Can\'t use bidirectional without connect being true. Try again, but use connect = true or change bidirectional to false'
+        print '/!\\ ERROR: Can\'t use bidirectional without connect being true. Try again, but use connect = true or change bidirectional to false'
         return None, None
     else:
         plan = rrt.build_rrt(pe.start, pe.goal)
@@ -426,7 +426,7 @@ def main():
     g2_1 = np.array([0.6, 0.15, -0.3])
     s3_1 = np.array([3.7, 0.9, 1.0])
     g3_1 = np.array([0.1, 1.3, 1.3])
-    test_rrt_env(env='./env1.txt', num_samples=5000, step_length=0.15,start=s1_1, goal=g1_1, connect_prob=0.05, connect=False, bidirectional=False)
+    test_rrt_env(env='./env1.txt', num_samples=5000, step_length=0.15,start=None, goal=None, connect_prob=0.05, connect=True, bidirectional=True)
 
 if __name__ == "__main__":
     main()

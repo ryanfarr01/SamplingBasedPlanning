@@ -142,7 +142,7 @@ class PRMGraph:
 
 class PRM:
     def __init__(self, num_samples, num_dimensions, step_length, collision_func, lims,
-                  num_neighbors, planner = _BASIC_PLANNER):
+                  num_neighbors, planner=_BASIC_PLANNER, rrt_samples=10):
         '''
         num_samples - number of times to sample the space
         num_dimensions - dimensionality of space
@@ -151,6 +151,7 @@ class PRM:
         lims - the limits on the space
         num_neighbors - how many neighbors to use when connecting the nodes
         planner - basic or rrt planner
+        rrt_samples - how many samples to use if using an RRT local planner
         '''
         self.K = num_samples
         self.n = num_dimensions
@@ -160,12 +161,13 @@ class PRM:
         self.found_path = False
         self.num_neighbors = num_neighbors
         self.planner = planner
+        self.rrt_samples=rrt_samples
         
     def clone(self):
         '''
         Clones the PRM. Breaks all references to original PRM
         '''
-        n_prm = PRM(self.K, self.n, self.epsilon, self.in_collision, self.limits, self.num_neighbors, self.planner)
+        n_prm = PRM(self.K, self.n, self.epsilon, self.in_collision, self.limits, self.num_neighbors, self.planner, self.rrt_samples)
         n_prm.T = self.T.clone()
         
         return n_prm
@@ -292,7 +294,7 @@ class PRM:
         Attempt to connect q to q_near using a RRT
         with start = q and goal = q_near.
         '''
-        tree = rrt.RRT(10, self.n, self.epsilon, self.limits, collision_func=self.in_collision)
+        tree = rrt.RRT(self.rrt_samples, self.n, self.epsilon, self.limits, collision_func=self.in_collision, connect_prob=0.1)
         plan = tree.build_rrt_connect(q.state, q_near.state)
 
         #add plan as nodes if we get a plan back
@@ -345,7 +347,7 @@ class PRM:
             
         return val
 
-def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False):
+def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors=5, gaussian=False, rrt_planner=False, rrt_samples=10):
     '''
     Produces PRM
     
@@ -365,13 +367,13 @@ def test_prm_env(num_samples=500, step_length=2, env='./env0.txt', num_neighbors
     start_time = time.time()
     planner = _RRT_PLANNER if rrt_planner else _BASIC_PLANNER
     
-    prm = PRM(num_samples, dims, step_length, pe.test_collisions, pe.lims, num_neighbors, planner)
+    prm = PRM(num_samples, dims, step_length, pe.test_collisions, pe.lims, num_neighbors, planner, rrt_samples)
     prm.build_prm(gaussian)
     
     run_time = time.time() - start_time
     print 'run_time = ', run_time
 
-    pe.draw_plan(None, prm)
+    pe.draw_plan(None, prm, show_points=False)
     return pe, prm
 
 def query_prm(pe, prm, start=None, goal=None):
@@ -389,24 +391,46 @@ def query_prm(pe, prm, start=None, goal=None):
         start = pe.start
     if(goal == None):
         goal = pe.goal
+        
+    start.astype(float)
+    goal.astype(float)
+    pe.start = start
+    pe.goal = goal
 
     q_prm, plan = prm.query(start, goal)
     print 'plan: ', plan
 
     #Draw correct start and goal
-    prev_start = pe.start
-    prev_goal = pe.goal
-    pe.start = start
-    pe.goal = goal
     pe.draw_plan(plan, q_prm)
-    pe.start = prev_start
-    pe.goal = prev_goal
-
+    
     return q_prm, plan
 
 def main():
-    pe, prm = test_prm_env(num_samples=500, step_length = 2, env='./env0.txt', gaussian=False, rrt_planner=True)
+    s1_0 = np.array([-60., 1.5])
+    g1_0 = np.array([39., 133.])
+    s2_0 = np.array([-70., 95.])
+    g2_0 = np.array([78., 28.5])
+    s3_0 = np.array([-19., 46.])
+    g3_0 = np.array([1., 30.])
+
+    s1_1 = np.array([0.8, 0.8, 0.8])
+    g1_1 = np.array([-0.6, -0.15, -0.3])
+    s2_1 = np.array([1.6, 0.9, 0.9])
+    g2_1 = np.array([0.6, 0.15, -0.3])
+    s3_1 = np.array([3.7, 0.9, 1.0])
+    g3_1 = np.array([0.1, 1.3, 1.3])
+    
+    pe, prm = test_prm_env(num_samples=300, step_length = 2, env='./env0.txt', num_neighbors=3, gaussian=False, rrt_planner=False, rrt_samples=10)
     query_prm(pe, prm)
+    query_prm(pe, prm, s1_0, g1_0)
+    query_prm(pe, prm, s2_0, g2_0)
+    query_prm(pe, prm, s3_0, g3_0)
+    
+    pe2, prm2 = test_prm_env(num_samples=500, step_length=0.02, env='./env1.txt', num_neighbors=3, gaussian=False, rrt_planner=False, rrt_samples=10)
+    query_prm(pe2, prm2)
+    query_prm(pe2, prm2, s1_1, g1_1)
+    query_prm(pe2, prm2, s2_1, g2_1)
+    query_prm(pe2, prm2, s3_1, g3_1)
 
 if __name__ == '__main__':
     main()
