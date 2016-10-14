@@ -62,6 +62,7 @@ class RRTSearchTree:
         '''
         min_d = 1000000
         nn = self.root
+        test = 0
         for n_i in self.nodes:
             d = np.linalg.norm(s_query - n_i.state)
             if d < min_d:
@@ -139,7 +140,7 @@ class RRT:
             x_rand = self.sample()
             if self.extend(x_rand) == _REACHED:
                 return self.T.get_back_path(self.goal_node)
-
+            
         return None
 
     def build_rrt_connect(self, init, goal):
@@ -249,6 +250,7 @@ class RRT:
         '''
         x_near = self.T.find_nearest(q)[0]
         x_near_state = x_near.state
+        
         if self.can_connect(q, x_near_state):
             if np.linalg.norm(self.goal - q) <= self.epsilon:
                 self.found_path = True
@@ -350,13 +352,16 @@ class RRT:
         '''
         return False
 
-def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False, bidirectional=True):
+def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', start = None, goal = None, connect_prob = 0.05, connect=False, bidirectional=True):
     '''
     create an instance of PolygonEnvironment from a description file and plan a path from start to goal on it using an RRT
 
     num_samples - number of samples to generate in RRT
     step_length - step size for growing in rrt (epsilon)
     env - path to the environment file to read
+    start - the start state
+    goal - the goal state
+    connect_prob - the probability of choosing the goal to try to connect to rather than a random node
     connect - If True run rrt_connect
     bidirectional - If true and connect is true, uses bidirectional rrt-connect
 
@@ -365,6 +370,16 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     pe = PolygonEnvironment()
     pe.read_env(env)
 
+    if start == None:
+        start = pe.start
+    if goal == None:
+        goal = pe.goal
+
+    start.astype(float)
+    goal.astype(float)
+    pe.start = start
+    pe.goal = goal
+
     dims = len(pe.start)
     start_time = time.time()
 
@@ -372,7 +387,7 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
               dims,
               step_length,
               lims = pe.lims,
-              connect_prob = 0.05,
+              connect_prob = connect_prob,
               collision_func=pe.test_collisions)
     if connect:
         if bidirectional:
@@ -387,11 +402,31 @@ def test_rrt_env(num_samples=500, step_length=2, env='./env0.txt', connect=False
     run_time = time.time() - start_time
     print 'plan:', plan
     print 'run_time =', run_time
+
+    #draw tree
+    pe.draw_plan(None, rrt, show_points=False)
+
+    #draw plan
+    pe.start = start
+    pe.goal = goal
     pe.draw_plan(plan, rrt)
     return plan, rrt
 
 def main():
-    test_rrt_env(env='./env1.txt', num_samples = 5000, step_length = 0.2, connect = True, bidirectional=True)
+    s1_0 = np.array([-60., 1.5])
+    g1_0 = np.array([39., 133.])
+    s2_0 = np.array([-70., 95.])
+    g2_0 = np.array([78., 28.5])
+    s3_0 = np.array([-19., 46.])
+    g3_0 = np.array([1., 30.])
+
+    s1_1 = np.array([0.8, 0.8, 0.8])
+    g1_1 = np.array([-0.6, -0.15, -0.3])
+    s2_1 = np.array([1.6, 0.9, 0.9])
+    g2_1 = np.array([0.6, 0.15, -0.3])
+    s3_1 = np.array([3.7, 0.9, 1.0])
+    g3_1 = np.array([0.1, 1.3, 1.3])
+    test_rrt_env(env='./env1.txt', num_samples=5000, step_length=0.15,start=s1_1, goal=g1_1, connect_prob=0.05, connect=False, bidirectional=False)
 
 if __name__ == "__main__":
     main()

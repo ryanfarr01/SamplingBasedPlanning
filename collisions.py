@@ -295,7 +295,7 @@ class PolygonEnvironment:
 
         return inside
 
-    def draw_env(self, q=None, show=True):
+    def draw_env(self, q=None, show=True, show_points=True):
         '''
         Draw the environment obstacle map
         '''
@@ -317,12 +317,13 @@ class PolygonEnvironment:
         # Draw goal
         goal_fk = self.robot.fk(self.goal)
         goal_x = goal_fk[-1]
-        plotter.plot(goal_x[0], goal_x[1], 'go')
+        if show_points:
+            plotter.plot(goal_x[0], goal_x[1], 'go')
 
         if show:
             plotter.show()
 
-    def draw_plan(self, plan, planner, dynamic_tree=False, dynamic_plan=True, show=True):
+    def draw_plan(self, plan, planner, dynamic_tree=False, dynamic_plan=True, show=True, show_points=True):
         '''
         Draw the environment with an overlaid plan.
         plan - sequence of configurations to be drawn as plan (not drawn if pass in None)
@@ -330,7 +331,7 @@ class PolygonEnvironment:
                   vertices, edges = planner.T.get_states_and_edges()
                   if None the search graph is not drawn
         '''
-        self.draw_env(show=False)
+        self.draw_env(show=False, show_points=show_points)
         two_trees = False
 
         # plotter.scatter(pts[:,0], pts[:,1])
@@ -341,11 +342,12 @@ class PolygonEnvironment:
         ws_goal = self.robot.fk(self.goal)
         ws_init = self.robot.fk(self.start)
 
-        plotter.plot(ws_goal[-1][0], ws_goal[-1][1], 'go')
-        plotter.plot(ws_goal[-1][0], ws_goal[-1][1], 'g.')
-        plotter.plot(ws_init[-1][0], ws_init[-1][1], 'ro')
-        plotter.plot(ws_init[-1][0], ws_init[-1][1], 'r.')
-        plotter.pause(0.1)
+        if show_points:
+            plotter.plot(ws_goal[-1][0], ws_goal[-1][1], 'go')
+            plotter.plot(ws_goal[-1][0], ws_goal[-1][1], 'g.')
+            plotter.plot(ws_init[-1][0], ws_init[-1][1], 'ro')
+            plotter.plot(ws_init[-1][0], ws_init[-1][1], 'r.')
+            plotter.pause(0.1)
 
         if planner is not None:
             Qs, edges = planner.T.get_states_and_edges()
@@ -359,16 +361,18 @@ class PolygonEnvironment:
             if two_trees:
                 self.plot_edges(edges_2, plotter, dynamic_tree)
 
-        # Draw goal
         goal_fk = self.robot.fk(self.goal)
         goal_x = goal_fk[-1]
-        plotter.plot(goal_x[0], goal_x[1], 'go')
-        plotter.plot(goal_x[0], goal_x[1], 'g.')
-        # Draw start
         start_fk = self.robot.fk(self.start)
         start_x = start_fk[-1]
-        plotter.plot(start_x[0], start_x[1], 'ro')
-        plotter.plot(start_x[0], start_x[1], 'r.')
+
+        if show_points:
+            # Draw goal
+            plotter.plot(goal_x[0], goal_x[1], 'go')
+            plotter.plot(goal_x[0], goal_x[1], 'g.')
+            # Draw start
+            plotter.plot(start_x[0], start_x[1], 'ro')
+            plotter.plot(start_x[0], start_x[1], 'r.')
 
         if plan is not None:
             self.robot.draw(plan[0], color='g')
