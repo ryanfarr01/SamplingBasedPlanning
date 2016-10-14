@@ -160,8 +160,7 @@ class PRM:
         self.found_path = False
         self.num_neighbors = num_neighbors
         self.planner = planner
-        self.attempts = 0
-
+        
     def clone(self):
         '''
         Clones the PRM. Breaks all references to original PRM
@@ -188,8 +187,6 @@ class PRM:
         #add all edges
         o_nodes = list(self.T.nodes)
         for node in o_nodes:
-            self.attempts += 1
-            print self.attempts
             for nb in self.T.find_k_nearest(self.num_neighbors, node.state):
                 if not nb in node.connections:
                     self.try_connect(node, nb)
